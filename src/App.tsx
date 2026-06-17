@@ -33,6 +33,7 @@ import {
   TrendingUp,
   CreditCard,
   Layers,
+  MapPin,
   ChevronRight,
   UserCheck,
   Bell,
@@ -44,7 +45,8 @@ import {
   QrCode,
   ShieldCheck,
   MessageSquareOff,
-  Eye
+  Eye,
+  LogOut
 } from "lucide-react";
 import DashboardAnalytics from "./components/DashboardAnalytics";
 import RegistrationForm from "./components/RegistrationForm";
@@ -52,9 +54,18 @@ import ContractorProfileDetail from "./components/ContractorProfileDetail";
 import KurvaSCurve from "./components/KurvaSCurve";
 import AIAssistant from "./components/AIAssistant";
 import { DocumentPreviewModal } from "./components/DocumentPreviewModal";
+import LoginForm from "./components/LoginForm";
+import IndonesiaMap from "./components/IndonesiaMap";
+import AutocompleteInput from "./components/AutocompleteInput";
+import ProjectTimeline from "./components/ProjectTimeline";
 
 export default function App() {
-  const [activeRole, setActiveRole] = useState<UserRole>("Owner Proyek");
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem("eproc_is_logged_in") === "true";
+  });
+  const [activeRole, setActiveRole] = useState<UserRole>(() => {
+    return db.getCurrentUser().role;
+  });
   const [currentUser, setCurrentUser] = useState<UserProfile>(db.getCurrentUser());
   const [activeTab, setActiveTab] = useState<"dashboard" | "contractors" | "projects" | "tenders" | "bids" | "finance" | "audits">("dashboard");
 
@@ -112,6 +123,30 @@ export default function App() {
   // File Preview Modal States
   const [selectedTenderForPreview, setSelectedTenderForPreview] = useState<Tender | null>(null);
   const [previewDocType, setPreviewDocType] = useState<"tor" | "rks" | "boq" | null>(null);
+
+  // Geospatial Map State
+  const [selectedMapProjectId, setSelectedMapProjectId] = useState<string | null>(null);
+
+  // Authentication Handlers
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setActiveRole(user.role);
+    localStorage.setItem("eproc_is_logged_in", "true");
+    setIsLoggedIn(true);
+    setNotifications(db.getNotifications(user.uid));
+    
+    // Switch to optimal view tab
+    if (user.role === "Finance") setActiveTab("finance");
+    else if (user.role === "Auditor") setActiveTab("audits");
+    else if (user.role === "Kontraktor" || user.role === "Subkontraktor") setActiveTab("tenders");
+    else setActiveTab("dashboard");
+  };
+
+  const handleLogout = () => {
+    db.logoutUser();
+    localStorage.removeItem("eproc_is_logged_in");
+    setIsLoggedIn(false);
+  };
 
   // Sync roles on toggle
   const handleRoleChange = (role: UserRole) => {
@@ -175,6 +210,34 @@ export default function App() {
     e.preventDefault();
     if (!newProjName.trim()) return;
 
+    // Auto coordinate estimation
+    let lat = -6.2088; // default Jakarta
+    let lon = 106.8456;
+    const locLower = newProjLocation.toLowerCase();
+    if (locLower.includes("jakarta")) {
+      lat = -6.2297; lon = 106.8294;
+    } else if (locLower.includes("kalimantan") || locLower.includes("ikn") || locLower.includes("penajam")) {
+      lat = -0.9103; lon = 116.7108;
+    } else if (locLower.includes("bogor") || locLower.includes("sentul") || locLower.includes("jawa barat")) {
+      lat = -6.5815; lon = 106.8837;
+    } else if (locLower.includes("surabaya") || locLower.includes("jawa timur")) {
+      lat = -7.2185; lon = 112.7225;
+    } else if (locLower.includes("bandung")) {
+      lat = -6.9175; lon = 107.6191;
+    } else if (locLower.includes("bali")) {
+      lat = -8.4095; lon = 115.1889;
+    } else if (locLower.includes("medan") || locLower.includes("sumatra") || locLower.includes("aceh")) {
+      lat = 3.5952; lon = 98.6722;
+    } else if (locLower.includes("sulawesi") || locLower.includes("makassar")) {
+      lat = -5.1477; lon = 119.4327;
+    } else if (locLower.includes("papua") || locLower.includes("sorong")) {
+      lat = -4.2699; lon = 138.0803;
+    } else {
+      // Slightly randomize to prevent overlap
+      lat = -6.2 + (Math.random() - 0.5) * 1.5;
+      lon = 106.8 + (Math.random() - 0.5) * 1.5;
+    }
+
     db.addProject({
       code: newProjCode,
       name: newProjName,
@@ -184,7 +247,9 @@ export default function App() {
       budget: newProjBudget,
       startDate: new Date().toISOString().slice(0, 10),
       endDate: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().slice(0, 10),
-      status: "Planning"
+      status: "Planning",
+      latitude: lat,
+      longitude: lon
     });
 
     setNewProjName("");
@@ -330,6 +395,10 @@ export default function App() {
     return matchCity && matchProvince && matchSbu;
   });
 
+  if (!isLoggedIn) {
+    return <LoginForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col font-sans transition-all selection:bg-blue-600 selection:text-white">
       
@@ -340,7 +409,7 @@ export default function App() {
           <span>Keamanan Enterprise: <strong>Role-Based Access Control (RBAC)</strong> aktif. Data terisolasi.</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-slate-400 font-medium">Beralih Akses Simulasi (Dev Switcher):</span>
+          <span className="text-slate-400 font-medium">Beralih Akses Peran (Otorisasi RBAC):</span>
           <select
             value={activeRole}
             onChange={(e) => handleRoleChange(e.target.value as UserRole)}
@@ -424,12 +493,20 @@ export default function App() {
             <span className="text-[10px] text-blue-400 font-semibold block uppercase tracking-wider">{currentUser.role}</span>
             <span className="text-xs font-bold text-white block">{currentUser.name}</span>
           </div>
-          <div className="relative p-1.5 bg-slate-950/40 border border-slate-800 rounded-lg text-slate-400 cursor-pointer hover:text-white hover:bg-slate-900">
+          <div className="relative p-1.5 bg-slate-950/40 border border-slate-800 rounded-lg text-slate-400 cursor-pointer hover:text-white hover:bg-slate-900" title="Notifikasi">
             <Bell className="w-4 h-4" />
             {notifications.some(n => !n.read) && (
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500"></span>
             )}
           </div>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg text-rose-400 font-bold transition-all text-[11px] cursor-pointer"
+            title="Keluar"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Keluar</span>
+          </button>
         </div>
       </header>
 
@@ -524,27 +601,21 @@ export default function App() {
                 </div>
 
                 <div className="space-y-4 text-xs">
-                  <div>
-                    <label className="block text-slate-500 font-bold mb-1.5 uppercase text-[10px]">Cari Kota:</label>
-                    <input
-                      type="text"
-                      value={searchCity}
-                      onChange={(e) => setSearchCity(e.target.value)}
-                      placeholder="cth: Jakarta Timur"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                    />
-                  </div>
+                  <AutocompleteInput
+                    label="Cari Kota:"
+                    value={searchCity}
+                    onChange={setSearchCity}
+                    placeholder="cth: Jakarta Timur"
+                    suggestions={contractors.map(c => c.city)}
+                  />
 
-                  <div>
-                    <label className="block text-slate-500 font-bold mb-1.5 uppercase text-[10px]">Cari Provinsi:</label>
-                    <input
-                      type="text"
-                      value={searchProvince}
-                      onChange={(e) => setSearchProvince(e.target.value)}
-                      placeholder="cth: Jawa Barat"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                    />
-                  </div>
+                  <AutocompleteInput
+                    label="Cari Provinsi:"
+                    value={searchProvince}
+                    onChange={setSearchProvince}
+                    placeholder="cth: Jawa Barat"
+                    suggestions={contractors.map(c => c.province)}
+                  />
 
                   <div>
                     <label className="block text-slate-500 font-bold mb-1.5 uppercase text-[10px]">Cari Lisensi SBU:</label>
@@ -639,12 +710,27 @@ export default function App() {
               )}
             </div>
 
+            {/* Indonesia Map Geospatial Visualizer Showcase */}
+            <IndonesiaMap 
+              projects={projects}
+              selectedProjectId={selectedMapProjectId}
+              onSelectProject={(id) => setSelectedMapProjectId(id)}
+            />
+
             {/* List of projects cards details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left font-sans">
               {projects.map((p) => {
                 const isOwnerOrAdmin = currentUser.role === "Super Admin" || currentUser.uid === p.ownerId;
+                const isMapSelected = selectedMapProjectId === p.id;
                 return (
-                  <div key={p.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+                  <div 
+                    key={p.id} 
+                    className={`p-5 rounded-2xl space-y-4 transition-all duration-300 ${
+                      isMapSelected 
+                        ? 'bg-slate-900 border-2 border-amber-500 shadow-xl shadow-amber-500/5 ring-1 ring-amber-500/20 scale-[1.01]' 
+                        : 'bg-slate-900 border border-slate-800'
+                    }`}
+                  >
                     <div className="flex justify-between items-start gap-3">
                       <div>
                         <span className="text-[10px] text-amber-500 font-mono block font-black uppercase tracking-wider">{p.code}</span>
@@ -662,10 +748,30 @@ export default function App() {
                       </span>
                     </div>
 
+                    <ProjectTimeline 
+                      status={p.status} 
+                      startDate={p.startDate} 
+                      endDate={p.endDate} 
+                    />
+
                     <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-850 space-y-2 text-xs">
-                      <div className="flex justify-between"><span className="text-slate-500">Nilai Pagu Proyek:</span> <span className="font-extrabold text-slate-200">Rp {p.budget.toLocaleString("id-ID")}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-500">Nilai Pagu Proyek:</span> <span className="font-extrabold text-slate-200 font-mono">Rp {p.budget.toLocaleString("id-ID")}</span></div>
                       <div className="flex justify-between"><span className="text-slate-500">Provinsi Area Pekerjaan:</span> <span className="text-slate-300 font-semibold">{p.location}</span></div>
                       <div className="flex justify-between"><span className="text-slate-500">Masa Periode Kontrak:</span> <span className="text-slate-300 font-mono font-semibold">{p.startDate} - {p.endDate}</span></div>
+                      <div className="flex justify-between items-center pt-1.5 mt-1 border-t border-slate-800/60">
+                        <span className="text-slate-500 text-[10px]">Peta Geospasial:</span>
+                        <button
+                          onClick={() => setSelectedMapProjectId(isMapSelected ? null : p.id)}
+                          className={`flex items-center gap-1 text-[10px] font-bold transition-all px-2 py-0.5 rounded border cursor-pointer ${
+                            isMapSelected
+                              ? 'bg-amber-500 text-slate-950 border-amber-400'
+                              : 'bg-slate-900 text-blue-400 border-slate-800 hover:text-blue-300 hover:border-slate-700'
+                          }`}
+                        >
+                          <MapPin className="w-3 h-3" />
+                          <span>{isMapSelected ? 'Dipilih' : 'Pusatkan Peta'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Progress Monitor action inside card list */}

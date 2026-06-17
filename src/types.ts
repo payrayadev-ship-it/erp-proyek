@@ -118,6 +118,8 @@ export interface Project {
   status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type TenderType = "Tender Terbuka" | "Tender Terbatas" | "Penunjukan Langsung";

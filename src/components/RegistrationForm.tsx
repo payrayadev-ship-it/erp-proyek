@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CheckCircle2, ShieldCheck, Mail, Phone, Globe, Building2, FileText, MapPin } from "lucide-react";
 import { useState } from "react";
+import { db } from "../lib/db";
 
 const registrationSchema = z.object({
   name: z.string().min(3, "Nama perusahaan minimal harus 3 karakter."),
@@ -60,10 +61,19 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
   });
 
   const onSubmitForm = async (data: RegistrationInputs) => {
-    // Simulating database call
+    // Register the contractor inside our database engine
+    const newContractor = db.registerContractor({
+      ...data,
+      website: data.website || "",
+      logo: "https://images.unsplash.com/photo-1516880711640-ef7db81be3e1?auto=format&fit=crop&w=120&h=120&q=80",
+      cover: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=800&h=300&q=80",
+      yearFounded: new Date().getFullYear(),
+      employeeCount: 25,
+    });
+
     await new Promise(resolve => setTimeout(resolve, 800));
-    onSuccess(data);
-    setCreatedProfile(data);
+    onSuccess(newContractor);
+    setCreatedProfile(newContractor);
     setIsSuccess(true);
     reset();
   };
@@ -84,6 +94,14 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
             <span className="text-slate-500">Nomor Registrasi (ID):</span>
             <span className="text-blue-400 font-semibold font-mono uppercase">EPROC-{Math.floor(1000 + Math.random()*9000)}</span>
           </div>
+          <div className="flex justify-between text-xs border-b border-slate-900 pb-2 mb-1">
+            <span className="text-slate-500">Email Akses Log In:</span>
+            <span className="text-emerald-400 font-mono font-bold select-all">{createdProfile.email}</span>
+          </div>
+          <div className="flex justify-between text-xs border-b border-slate-900 pb-2 mb-1">
+            <span className="text-slate-500">Kata Sandi Default:</span>
+            <span className="text-slate-300 font-mono">password123 (atau email apa saja)</span>
+          </div>
           <div className="flex justify-between text-xs">
             <span className="text-slate-500">Nomor Induk Berusaha:</span>
             <span className="text-slate-300 font-mono">{createdProfile.nib}</span>
@@ -92,9 +110,9 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
             <span className="text-slate-500">Alamat Perusahaan:</span>
             <span className="text-slate-300">{createdProfile.city}, {createdProfile.province}</span>
           </div>
-          <div className="flex justify-between text-xs">
+          <div className="flex justify-between text-xs pt-1">
             <span className="text-slate-500">Status Awal:</span>
-            <span className="bg-blue-500/10 text-blue-450 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">PENDING VERIFICATION</span>
+            <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">PENDING VERIFICATION</span>
           </div>
         </div>
 

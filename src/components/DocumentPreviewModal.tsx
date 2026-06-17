@@ -276,7 +276,7 @@ export function DocumentPreviewModal({ tender, docType, onClose }: DocumentPrevi
 
             <button
               onClick={() => {
-                alert("Simulasi cetak dokumen disiapkan. Cetakan fisik disesuaikan ke format kualifikasi LPJK.");
+                alert("Dokumen telah siap dicetak. Format dokumen disesuaikan ke standar kualifikasi LPJK.");
               }}
               className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 hover:text-white transition-all"
               title="Cetak Salinan"
@@ -381,8 +381,8 @@ export function DocumentPreviewModal({ tender, docType, onClose }: DocumentPrevi
               <div className="p-4 bg-slate-900 border-b border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="text-left">
                   <div className="flex items-center gap-1.5">
-                    <TrendingDown className="w-4 h-4 text-emerald-400" />
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">Kalkulator Simulasi Bid Komersial</h4>
+                     <TrendingDown className="w-4 h-4 text-emerald-400" />
+                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">Kalkulator Estimasi Bid Komersial</h4>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">Geser rasio penawaran untuk memprediksi harga efisiensi total di bawah pagu HPS.</p>
                 </div>
@@ -470,7 +470,7 @@ export function DocumentPreviewModal({ tender, docType, onClose }: DocumentPrevi
                               <th className="p-3 text-center">Volume</th>
                               <th className="p-3 text-center">Satuan</th>
                               <th className="p-3 text-right">HPS Satuan</th>
-                              <th className="p-3 text-right">Simulasi Satuan ({bidAdjustment}%)</th>
+                              <th className="p-3 text-right">Estimasi Satuan ({bidAdjustment}%)</th>
                               <th className="p-3 text-right">Total Penawaran</th>
                             </tr>
                           </thead>

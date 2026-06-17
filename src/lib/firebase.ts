@@ -21,8 +21,8 @@ async function testConnection() {
     await getDocFromServer(doc(db, "test", "connection"));
     console.log("Firebase connection established successfully.");
   } catch (error) {
-    if (error instanceof Error && error.message.includes("client is offline")) {
-      console.error("Please check your Firebase configuration or networks.");
+    if (error instanceof Error && (error.message.includes("client is offline") || error.message.includes("Could not reach Cloud Firestore"))) {
+      console.warn("Please check your Firebase configuration or networks.");
     } else {
       console.log("Firestore connection test completed (expected offline or permission status).");
     }

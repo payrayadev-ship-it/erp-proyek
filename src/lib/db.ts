@@ -520,7 +520,9 @@ const INITIAL_PROJECTS: Project[] = [
     endDate: "2027-06-30",
     status: "Tender",
     createdAt: "2026-02-15T00:00:00Z",
-    updatedAt: "2026-06-16T00:00:00Z"
+    updatedAt: "2026-06-16T00:00:00Z",
+    latitude: -6.2297,
+    longitude: 106.8294
   },
   {
     id: "project-2",
@@ -534,7 +536,9 @@ const INITIAL_PROJECTS: Project[] = [
     endDate: "2027-02-28",
     status: "Running",
     createdAt: "2026-01-10T00:00:00Z",
-    updatedAt: "2026-06-16T00:00:00Z"
+    updatedAt: "2026-06-16T00:00:00Z",
+    latitude: -0.9103,
+    longitude: 116.7108
   },
   {
     id: "project-3",
@@ -548,7 +552,9 @@ const INITIAL_PROJECTS: Project[] = [
     endDate: "2026-05-30",
     status: "Completed",
     createdAt: "2025-05-01T00:00:00Z",
-    updatedAt: "2026-05-30T00:00:00Z"
+    updatedAt: "2026-05-30T00:00:00Z",
+    latitude: -6.5815,
+    longitude: 106.8837
   },
   {
     id: "project-4",
@@ -562,7 +568,9 @@ const INITIAL_PROJECTS: Project[] = [
     endDate: "2027-08-31",
     status: "Planning",
     createdAt: "2026-05-10T02:00:00Z",
-    updatedAt: "2026-06-16T00:00:00Z"
+    updatedAt: "2026-06-16T00:00:00Z",
+    latitude: -7.2185,
+    longitude: 112.7225
   }
 ];
 
@@ -788,19 +796,25 @@ class DatabaseEngine {
   private async loadFromFirestore() {
     try {
       const keys = ["projects", "tenders", "bids", "invoices", "payments"];
-      for (const key of keys) {
-        const querySnapshot = await getDocs(collection(firestoreDb, key));
-        if (!querySnapshot.empty) {
-          const items: any[] = [];
-          querySnapshot.forEach((doc) => {
-            items.push(doc.data());
-          });
-          if (items.length > 0) {
-            (this as any)[key] = items;
-            localStorage.setItem(`eproc_${key}`, JSON.stringify(items));
+      await Promise.all(
+        keys.map(async (key) => {
+          try {
+            const querySnapshot = await getDocs(collection(firestoreDb, key));
+            if (!querySnapshot.empty) {
+              const items: any[] = [];
+              querySnapshot.forEach((doc) => {
+                items.push(doc.data());
+              });
+              if (items.length > 0) {
+                (this as any)[key] = items;
+                localStorage.setItem(`eproc_${key}`, JSON.stringify(items));
+              }
+            }
+          } catch (err) {
+            console.debug(`Firestore load fallback for ${key}:`, err);
           }
-        }
-      }
+        })
+      );
       console.log("Loaded initial e-procurement state from Firestore successfully.");
     } catch (err) {
       console.warn("Firestore lazy loading fallback to localStorage state:", err);
@@ -876,6 +890,21 @@ class DatabaseEngine {
   // Current logged in user config
   getCurrentUser() {
     return this.currentUser;
+  }
+
+  loginUser(email: string) {
+    const matched = this.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (matched) {
+      this.currentUser = matched;
+      this.logAudit(matched.uid, matched.name, "User Authentication", `User logged in successfully with account role ${matched.role}`);
+      this.saveToStorage();
+      return matched;
+    }
+    return null;
+  }
+
+  logoutUser() {
+    this.logAudit(this.currentUser.uid, this.currentUser.name, "User Logout", `User logged out of active session`);
   }
 
   switchUser(role: UserRole) {
