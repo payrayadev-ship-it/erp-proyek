@@ -1,0 +1,8 @@
+{
+  "name": "FORSDIG E-PROC KONTRAKTOR",
+  "description": "Enterprise marketplace platform for project procurement and professional contractor bidding, matching, and rating in Indonesia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

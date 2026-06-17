@@ -1,0 +1,201 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- PRIMITIVE GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('Super Admin');
+    }
+
+    function isOwner(ownerId) {
+      return request.auth.uid == ownerId;
+    }
+
+    // --- MODEL VALIDATION SCHEMAS (Prevent Shadow Fields & Type Spoofing) ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'name'])
+        && data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 200
+        && data.role is string && data.role.size() <= 50
+        && data.name is string && data.name.size() <= 200;
+    }
+
+    function isValidContractor(data) {
+      return data.keys().hasAll(['id', 'name', 'nib', 'npwp', 'email'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.nib is string && data.nib.size() <= 50
+        && data.email is string && data.email.size() <= 200;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'code', 'name', 'ownerId', 'budget', 'status'])
+        && data.id is string && data.id.size() <= 128
+        && data.code is string && data.code.size() <= 50
+        && data.name is string && data.name.size() <= 200
+        && data.ownerId is string && data.ownerId.size() <= 128
+        && data.budget is number && data.budget >= 0
+        && data.status is string && data.status.size() <= 50;
+    }
+
+    function isValidTender(data) {
+      return data.keys().hasAll(['id', 'projectId', 'title', 'hpsBudget', 'status'])
+        && data.id is string && data.id.size() <= 128
+        && data.projectId is string && data.projectId.size() <= 128
+        && data.title is string && data.title.size() <= 200
+        && data.hpsBudget is number && data.hpsBudget >= 0
+        && data.status is string && data.status.size() <= 50;
+    }
+
+    function isValidBid(data) {
+      return data.keys().hasAll(['id', 'tenderId', 'contractorId', 'bidAmount', 'status'])
+        && data.id is string && data.id.size() <= 128
+        && data.tenderId is string && data.tenderId.size() <= 128
+        && data.contractorId is string && data.contractorId.size() <= 128
+        && data.bidAmount is number && data.bidAmount >= 0
+        && data.status is string && data.status.size() <= 50;
+    }
+
+    // --- COHORT SECURITY PERMISSIONS FOR COLLECTIONS ---
+
+    // users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidId(userId) && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isSignedIn() && isOwner(userId) && isValidUser(request.resource.data) 
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) || isAdmin());
+    }
+
+    // contractors Collection
+    match /contractors/{contractorId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(contractorId) && (hasRole('Kontraktor') || hasRole('Subkontraktor') || isAdmin()) && isValidContractor(request.resource.data);
+      allow update: if isSignedIn() && (isOwner(contractorId) || hasRole('Procurement') || isAdmin()) && isValidContractor(request.resource.data);
+    }
+
+    // Contractor Subcollections: staff, equipment, documents, reviews
+    match /contractors/{contractorId}/staff/{staffId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isOwner(contractorId) || isAdmin());
+    }
+
+    match /contractors/{contractorId}/equipment/{eqId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isOwner(contractorId) || isAdmin());
+    }
+
+    match /contractors/{contractorId}/documents/{docId} {
+      allow read: if isSignedIn() && (isOwner(contractorId) || hasRole('Procurement') || isAdmin());
+      allow write: if isSignedIn() && (isOwner(contractorId) || isAdmin());
+    }
+
+    match /contractors/{contractorId}/reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Owner Proyek') || isAdmin());
+    }
+
+    // projects Collection
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(projectId) && (hasRole('Owner Proyek') || isAdmin()) && isValidProject(request.resource.data);
+      allow update: if isSignedIn() && (hasRole('Owner Proyek') || hasRole('Project Manager') || isAdmin()) && isValidProject(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // tenders Collection
+    match /tenders/{tenderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(tenderId) && (hasRole('Owner Proyek') || hasRole('Procurement') || isAdmin()) && isValidTender(request.resource.data);
+      allow update: if isSignedIn() && (hasRole('Owner Proyek') || hasRole('Procurement') || isAdmin()) && isValidTender(request.resource.data);
+    }
+
+    // tender documents subcollection
+    match /tenders/{tenderId}/documents/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Owner Proyek') || hasRole('Procurement') || isAdmin());
+    }
+
+    // bids Collection
+    match /bids/{bidId} {
+      allow read: if isSignedIn() && (hasRole('Kontraktor') || hasRole('Subkontraktor') || hasRole('Owner Proyek') || hasRole('Procurement') || hasRole('Auditor') || isAdmin());
+      allow create: if isSignedIn() && isValidId(bidId) && (hasRole('Kontraktor') || hasRole('Subkontraktor') || isAdmin()) && isValidBid(request.resource.data);
+      allow update: if isSignedIn() && (hasRole('Kontraktor') || hasRole('Subkontraktor') || hasRole('Procurement') || hasRole('Owner Proyek') || isAdmin()) && isValidBid(request.resource.data);
+    }
+
+    // contracts Collection
+    match /contracts/{contractId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Owner Proyek') || hasRole('Procurement') || isAdmin());
+    }
+
+    // progress_reports subcollection
+    match /projects/{projectId}/reports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Project Manager') || hasRole('Kontraktor') || hasRole('Konsultan') || isAdmin());
+    }
+
+    // bast Collection
+    match /bast/{bastId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Owner Proyek') || hasRole('Konsultan') || hasRole('Kontraktor') || isAdmin());
+    }
+
+    // invoices Collection
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(invoiceId) && (hasRole('Kontraktor') || hasRole('Subkontraktor') || isAdmin());
+      allow update: if isSignedIn() && (hasRole('Finance') || hasRole('Owner Proyek') || isAdmin());
+    }
+
+    // payments Collection
+    match /payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (hasRole('Finance') || isAdmin());
+    }
+
+    // notifications Collection
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    // audit_logs Collection (IMMUTABLE, NO UPDATE/DELETE)
+    match /audit_logs/{logId} {
+      allow get: if isSignedIn() && (hasRole('Auditor') || isAdmin());
+      allow list: if isSignedIn() && (hasRole('Auditor') || isAdmin());
+      allow create: if isSignedIn(); // System & user events logging
+      allow update, delete: if false; // Auditor security: Immutable
+    }
+  }
+}

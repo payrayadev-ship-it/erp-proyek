@@ -1,0 +1,328 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with credential roles and access limits.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Super Admin", "Owner Proyek", "Procurement", "Project Manager", "Finance", "Kontraktor", "Subkontraktor", "Konsultan", "Auditor"] },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "companyName": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "name"]
+    },
+    "Contractor": {
+      "title": "Contractor",
+      "description": "Registered company profile, legal certifications, and scoring data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nib": { "type": "string" },
+        "npwp": { "type": "string" },
+        "sbu": { "type": "string" },
+        "siujk": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "province": { "type": "string" },
+        "pic": { "type": "string" },
+        "email": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "website": { "type": "string" },
+        "logo": { "type": "string" },
+        "cover": { "type": "string" },
+        "companyProfile": { "type": "string" },
+        "yearFounded": { "type": "integer" },
+        "employeeCount": { "type": "integer" },
+        "rating": { "type": "number" },
+        "ratingCount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["Pending", "Verified", "Rejected", "Blacklist"] },
+        "score": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "nib", "npwp", "email"]
+    },
+    "ContractorReview": {
+      "title": "Contractor Review",
+      "description": "Reviews and star metrics uploaded by project owners.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "reviewerId": { "type": "string" },
+        "reviewerName": { "type": "string" },
+        "projectTitle": { "type": "string" },
+        "quality": { "type": "number" },
+        "timeliness": { "type": "number" },
+        "communication": { "type": "number" },
+        "safety": { "type": "number" },
+        "reviewText": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "contractorId", "reviewerId", "rating"]
+    },
+    "ContractorDocument": {
+      "title": "Contractor Document",
+      "description": "Legal status attachment documents.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "type": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "uploadedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "contractorId", "type", "fileUrl"]
+    },
+    "ContractorStaff": {
+      "title": "Contractor Staff",
+      "description": "Expert engineers and expert credentials.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "name": { "type": "string" },
+        "position": { "type": "string" },
+        "skaCert": { "type": "string" },
+        "skkCert": { "type": "string" },
+        "validUntil": { "type": "string" },
+        "experienceYears": { "type": "integer" }
+      },
+      "required": ["id", "contractorId", "name"]
+    },
+    "ContractorEquipment": {
+      "title": "Contractor Equipment",
+      "description": "Heavy machinery listings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "capacity": { "type": "string" },
+        "year": { "type": "integer" },
+        "status": { "type": "string" },
+        "photoUrl": { "type": "string" }
+      },
+      "required": ["id", "contractorId", "name"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Infrastructure construction target metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "budget": { "type": "number" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["Planning", "Tender", "Running", "Hold", "Completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "code", "name", "ownerId", "budget"]
+    },
+    "Tender": {
+      "title": "Tender",
+      "description": "Procurement announcements and legal bids open to contractors.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "hpsBudget": { "type": "number" },
+        "schedule": { "type": "string" },
+        "type": { "type": "string", "enum": ["Tender Terbuka", "Tender Terbatas", "Penujukan Langsung"] },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "projectId", "title", "hpsBudget"]
+    },
+    "TenderDocument": {
+      "title": "Tender Document",
+      "description": "Legal specifications uploaded for bidding guidance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tenderId": { "type": "string" },
+        "torUrl": { "type": "string" },
+        "rksUrl": { "type": "string" },
+        "boqUrl": { "type": "string" },
+        "drawingsUrl": { "type": "string" }
+      },
+      "required": ["id", "tenderId"]
+    },
+    "Bid": {
+      "title": "Bid",
+      "description": "Contractor proposal bidding for an active announcement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tenderId": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "contractorName": { "type": "string" },
+        "bidAmount": { "type": "number" },
+        "durationDays": { "type": "integer" },
+        "executionMethod": { "type": "string" },
+        "technicalDocUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Submitted", "Evaluasi", "Menang", "Kalah"] },
+        "evaluationScore": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "tenderId", "contractorId", "bidAmount"]
+    },
+    "Contract": {
+      "title": "Contract",
+      "description": "Legal signing records, terms structure, and QR verify system.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractNumber": { "type": "string" },
+        "bidId": { "type": "string" },
+        "tenderId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "details": { "type": "string" },
+        "activeValue": { "type": "number" },
+        "qrCodeUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Aktif", "Selesai", "Diputus"] },
+        "esignedByOwner": { "type": "boolean" },
+        "esignedByContractor": { "type": "boolean" },
+        "signedAt": { "type": "string" }
+      },
+      "required": ["id", "contractNumber", "projectId", "contractorId"]
+    },
+    "ProgressReport": {
+      "title": "Progress Report",
+      "description": "Daily/Weekly/Monthly updates tracking construction Kurva S.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "period": { "type": "string" },
+        "date": { "type": "string" },
+        "percentComplete": { "type": "number" },
+        "description": { "type": "string" },
+        "photosUrl": { "type": "string" },
+        "kurvaValue": { "type": "number" }
+      },
+      "required": ["id", "projectId", "percentComplete", "date"]
+    },
+    "Bast": {
+      "title": "BAST",
+      "description": "Berita Acara Serah Terima official certificate.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "bidId": { "type": "string" },
+        "bappNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "ownerSignature": { "type": "string" },
+        "contractorSignature": { "type": "string" },
+        "consultantSignature": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "projectId", "bappNumber"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Financial billing records requested.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contractId": { "type": "string" },
+        "contractorId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "amount": { "type": "number" },
+        "tax": { "type": "number" },
+        "termNumber": { "type": "integer" },
+        "fileUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["Menunggu", "Diverifikasi", "Disetujui", "Dibayar"] }
+      },
+      "required": ["id", "contractId", "invoiceNumber", "amount"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment records processing verified logs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceId": { "type": "string" },
+        "amount": { "type": "number" },
+        "transactionHash": { "type": "string" },
+        "paidAt": { "type": "string" },
+        "bankName": { "type": "string" },
+        "accountNumber": { "type": "string" }
+      },
+      "required": ["id", "invoiceId", "amount", "paidAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Role activity announcements alerts.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string" },
+        "link": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "message"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Indelible logs of access activity for Auditors.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "Authenticating e-proc users." },
+    "/contractors/{contractorId}": { "schema": "Contractor", "description": "Detailed business contractor index profiles." },
+    "/contractors/{contractorId}/reviews/{reviewId}": { "schema": "ContractorReview", "description": "Owner quality evaluations." },
+    "/contractors/{contractorId}/documents/{docId}": { "schema": "ContractorDocument", "description": "Legal file checklist verification." },
+    "/contractors/{contractorId}/staff/{staffId}": { "schema": "ContractorStaff", "description": "Staff specialists roster." },
+    "/contractors/{contractorId}/equipment/{eqId}": { "schema": "ContractorEquipment", "description": "Heavy crawler machinery inventory." },
+    "/projects/{projectId}": { "schema": "Project", "description": "Enterprise construction projects." },
+    "/tenders/{tenderId}": { "schema": "Tender", "description": "Announced project tender entries." },
+    "/tenders/{tenderId}/documents/{docId}": { "schema": "TenderDocument", "description": "Procurement spec documents (TOR/BOQ)." },
+    "/bids/{bidId}": { "schema": "Bid", "description": "E-bid submissions from contractors." },
+    "/contracts/{contractId}": { "schema": "Contract", "description": "Awarded contracts with signature states." },
+    "/projects/{projectId}/reports/{reportId}": { "schema": "ProgressReport", "description": "Daily/weekly construction progress lines." },
+    "/bast/{bastId}": { "schema": "Bast", "description": "BAST legal transfers." },
+    "/invoices/{invoiceId}": { "schema": "Invoice", "description": "Term billing invoices." },
+    "/payments/{paymentId}": { "schema": "Payment", "description": "Verified transaction payments." },
+    "/notifications/{notifId}": { "schema": "Notification", "description": "System notices feed." },
+    "/audit_logs/{logId}": { "schema": "AuditLog", "description": "Irreversible auditor history log list." }
+  }
+}
